@@ -1,0 +1,5 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" }
+]

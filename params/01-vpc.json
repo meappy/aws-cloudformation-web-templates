@@ -1,0 +1,13 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamVpcCidr",           "ParameterValue": "172.16.0.0/16" },
+  { "ParameterKey": "ParamSubnetBastion",     "ParameterValue": "172.16.0.0/24" },
+  { "ParameterKey": "ParamSubnetPubZoneA",    "ParameterValue": "172.16.1.0/25" },
+  { "ParameterKey": "ParamSubnetPubZoneB",    "ParameterValue": "172.16.2.0/25" },
+  { "ParameterKey": "ParamSubnetPubZoneC",    "ParameterValue": "172.16.3.0/25" },
+  { "ParameterKey": "ParamSubnetPrvZoneA",    "ParameterValue": "172.16.1.128/25" },
+  { "ParameterKey": "ParamSubnetPrvZoneB",    "ParameterValue": "172.16.2.128/25" },
+  { "ParameterKey": "ParamSubnetPrvZoneC",    "ParameterValue": "172.16.3.128/25" }
+]

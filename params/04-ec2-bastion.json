@@ -1,0 +1,9 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamAccessKey",         "ParameterValue": "private-key" },
+  { "ParameterKey": "ParamEC2Tag",            "ParameterValue": "bastion-v1" },
+  { "ParameterKey": "ParamImageId",           "ParameterValue": "ami-30041c53" },
+  { "ParameterKey": "ParamInstanceType",      "ParameterValue": "t2.nano" }
+]

@@ -1,0 +1,13 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamDatabase1",         "ParameterValue": "prod_db1" },
+  { "ParameterKey": "ParamDatabase2",         "ParameterValue": "prod_db2" },
+  { "ParameterKey": "ParamUsername",          "ParameterValue": "root" },
+  { "ParameterKey": "ParamPassword",          "ParameterValue": "?~xBIdn.\v:~!L4~" },
+  { "ParameterKey": "ParamMultiZone",         "ParameterValue": "true" },
+  { "ParameterKey": "ParamAllocatedStorage",  "ParameterValue": "10" },
+  { "ParameterKey": "ParamInstanceClass",     "ParameterValue": "db.t2.medium" },
+  { "ParameterKey": "ParamEngine",            "ParameterValue": "mysql" }
+]

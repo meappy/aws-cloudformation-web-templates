@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: Certificate Manager
+
+
+Resources:
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties: 
+      DomainName: domain1.com
+      DomainValidationOptions:
+        - DomainName: 'domain1.com'
+          ValidationDomain: 'domain1.com'
+        - DomainName: '*.domain1.com'
+          ValidationDomain: 'domain1.com'
+        - DomainName: '*.domain2.com'
+          ValidationDomain: 'domain2.com'
+        - DomainName: 'domain2.com'
+          ValidationDomain: 'domain2.com'
+      SubjectAlternativeNames:
+        - '*.domain1.com'
+        - '*.domain2.com'
+        - 'domain2.com'
+      Tags:
+        - Key: Management
+          Value: Hosted
+
+
+Outputs:
+  OutputCertificate:
+    Value: !Ref Certificate
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, Certificate ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

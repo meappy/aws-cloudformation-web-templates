@@ -1,0 +1,7 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "BucketName1",            "ParameterValue": "media.domain1.com" },
+  { "ParameterKey": "BucketName2",            "ParameterValue": "media.domain2.com" }
+]

@@ -1,0 +1,9 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamECCName1",          "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNodeType",          "ParameterValue": "cache.t2.medium" },
+  { "ParameterKey": "ParamEngine",            "ParameterValue": "memcached" },
+  { "ParameterKey": "ParamNodeCount",         "ParameterValue": "1" }
+]

@@ -1,0 +1,233 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: EC2 (Web)
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+  ParamAccessKey:
+    Type: String
+
+  ParamAutoScaleGroupTag:
+    Type: String
+
+  ParamCertificateArn:
+    Type: String
+
+  ParamImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-e2021d81
+
+  ParamInstanceType:
+    Type: String
+    Default: t2.medium
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+
+
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupWeb  ] ]
+      Subnets:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneC ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+        - Key: BaseStack
+          Value:
+            Ref: ParamVpcStackName
+
+  LoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: /en/
+      Port: 80
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, VPC ] ]
+
+  LoadBalancerListener80:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: LoadBalancerTargetGroup
+
+  LoadBalancerListener443:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn:
+            Ref: ParamCertificateArn
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: LoadBalancerTargetGroup
+
+  LaunchConfigurationWeb:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId:
+        Ref: ParamImageId
+      InstanceType:
+        Ref: ParamInstanceType
+      KeyName:
+        Ref: ParamAccessKey
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupMgmt ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupWeb  ] ]
+      UserData:
+        "Fn::Base64": !Sub |
+          #cloud-config
+          package_upgrade: true
+          packages:
+            - awscli
+            - nfs-common
+            - nginx
+          write_files:
+              - path: /root/.aws/config
+                owner: 'root:root'
+                permissions: '0600'
+                content: |
+                  [default]
+                  region = ap-southeast-2
+              - path: /root/.aws/credentials
+                owner: 'root:root'
+                permissions: '0600'
+                content: |
+                  [default]
+                  aws_access_key_id =
+                  aws_secret_access_key =
+          runcmd:
+            - [ mkdir, /u01 ]
+            - [ mkdir, -p, /opt/hosted/deploy ]
+            - [ aws, s3, cp, 's3://deploy-v1/brandsite/include/env.sh', /opt/hosted/deploy/ ]
+            - [ aws, s3, cp, 's3://deploy-v1/brandsite/include/userdata-web.sh', /opt/hosted/deploy/ ]
+            - [ chmod, go-x, /opt/hosted/deploy ]
+            - [ chmod, ug+x, /opt/hosted/deploy/userdata-web.sh ]
+            - [ /opt/hosted/deploy/userdata-web.sh ]
+            - [ touch, /root/built ]
+          users:
+            - default
+          power_state:
+            delay: "+1"
+            mode: reboot
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MaxSize: 4
+      MinSize: 3
+      DesiredCapacity: 3
+      HealthCheckGracePeriod: 360
+      LaunchConfigurationName:
+        Ref: LaunchConfigurationWeb
+      TargetGroupARNs:
+        - Ref: LoadBalancerTargetGroup
+      AvailabilityZones:
+        Fn::GetAZs:
+          Ref: AWS::Region
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneC ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+          PropagateAtLaunch: true
+        - Key: Name
+          Value:
+            Ref: ParamAutoScaleGroupTag
+          PropagateAtLaunch: true
+
+  AutoScalingPolicyUp:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: AutoScalingGroup
+      PolicyType: StepScaling
+      StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 1
+
+  AutoScalingPolicyDown:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: AutoScalingGroup
+      PolicyType: StepScaling
+      StepAdjustments:
+        - MetricIntervalUpperBound: 0
+          ScalingAdjustment: -1
+
+  AlarmScaleUp:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Ref: AutoScalingPolicyUp
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: AutoScalingGroup
+      EvaluationPeriods: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 80
+
+  AlarmScaleDown:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Ref: AutoScalingPolicyDown
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: LessThanOrEqualToThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: AutoScalingGroup
+      EvaluationPeriods: 6
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 79
+
+Outputs:
+  OutputElbLoadBalancerWeb:
+    Value: !GetAtt [ LoadBalancer,DNSName ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, OutputElbLoadBalancerWeb ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

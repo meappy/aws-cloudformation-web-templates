@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: EC2 (ELK)
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+  ParamAccessKey:
+    Type: String
+
+  ParamAutoScaleGroupTag:
+    Type: String
+
+  ParamImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-30041c53
+
+  ParamInstanceType:
+    Type: String
+    Default: t2.medium
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+
+
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupElk ] ]
+      Subnets:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPubZoneC ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+        - Key: BaseStack
+          Value:
+            Ref: ParamVpcStackName
+
+  LoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 9200
+      Protocol: HTTP
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: 9200
+      VpcId:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, VPC ] ]
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Port: 9200
+      Protocol: HTTP
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: LoadBalancerTargetGroup
+
+  LaunchConfigurationElk:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId:
+        Ref: ParamImageId
+      InstanceType:
+        Ref: ParamInstanceType
+      KeyName:
+        Ref: ParamAccessKey
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupMgmt ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupElk  ] ]
+      UserData:
+        "Fn::Base64": !Sub |
+          #cloud-config
+          package_upgrade: true
+          packages:
+            - nfs-utils
+          users:
+            - default
+          write_files:
+              - path: /root/.aws/config
+                owner: 'root:root'
+                permissions: '0600'
+                content: |
+                  [default]
+                  region = ap-southeast-2
+              - path: /root/.aws/credentials
+                owner: 'root:root'
+                permissions: '0600'
+                content: |
+                  [default]
+                  aws_access_key_id =
+                  aws_secret_access_key =
+          runcmd:
+            - [ mkdir, /u01 ]
+            - [ mkdir, -p, /opt/hosted/deploy ]
+            - [ aws, s3, cp, 's3://deploy-v1/brandsite/include/env.sh', /opt/hosted/deploy/ ]
+            - [ aws, s3, cp, 's3://deploy-v1/brandsite/include/userdata-elk.sh', /opt/hosted/deploy/ ]
+            - [ chmod, go-x, /opt/hosted/deploy ]
+            - [ chmod, ug+x, /opt/hosted/deploy/userdata-elk.sh ]
+            - [ /opt/hosted/deploy/userdata-elk.sh ]
+            - [ touch, /root/built ]
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MaxSize: 4
+      MinSize: 2
+      DesiredCapacity: 2
+      LaunchConfigurationName:
+        Ref: LaunchConfigurationElk
+      TargetGroupARNs:
+        - Ref: LoadBalancerTargetGroup
+      AvailabilityZones:
+        Fn::GetAZs:
+          Ref: AWS::Region
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneC ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+          PropagateAtLaunch: true
+        - Key: Name
+          Value:
+            Ref: ParamAutoScaleGroupTag
+          PropagateAtLaunch: true
+
+
+Outputs:
+  OutputElbLoadBalancerElk:
+    Value: !GetAtt [ LoadBalancer,DNSName ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, OutputElbLoadBalancerElk ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

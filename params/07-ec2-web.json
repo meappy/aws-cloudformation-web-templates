@@ -1,0 +1,10 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamAccessKey",         "ParameterValue": "private-key" },
+  { "ParameterKey": "ParamCertificateArn",    "ParameterValue": "arn:aws:acm:ap-southeast-2:xxxxxxxxxxxx:certificate/xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+  { "ParameterKey": "ParamAutoScaleGroupTag", "ParameterValue": "web-as-v1" },
+  { "ParameterKey": "ParamImageId",           "ParameterValue": "ami-e2021d81" },
+  { "ParameterKey": "ParamInstanceType",      "ParameterValue": "t2.medium" }
+]

@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: ElastiCache
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+  ParamECCName1:
+    Type: String
+
+  ParamNodeType:
+    Type: String
+    Default: cache.t2.medium
+    AllowedValues:
+      - cache.t2.micro
+      - cache.t2.small
+      - cache.t2.medium
+
+  ParamEngine:
+    Type: String
+    Default: memcached
+    AllowedValues:
+      - memcached
+      - redis
+
+  ParamNodeCount:
+    Type: String
+    Default: 1
+
+
+Resources:
+  CacheClusterSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: !Join [ "-", [ !Ref ParamVpcStackName, ecc-sngrp ] ]
+      SubnetIds:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneC ] ]
+
+  CacheClusterWebsite1:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      ClusterName:
+        Fn::Join: [ "-", [ !Ref ParamVpcStackName, Website1 ] ]
+      CacheNodeType:
+        Ref: ParamNodeType
+      CacheSubnetGroupName:
+        Ref: CacheClusterSubnetGroup
+      Engine:
+        Ref: ParamEngine
+      NotificationTopicArn:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      NumCacheNodes:
+        Ref: ParamNodeCount
+      Tags:
+        - Key: Management
+          Value: Hosted
+      VpcSecurityGroupIds:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupEcc ] ]
+
+  CacheClusterWebsite2:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      ClusterName:
+        Fn::Join: [ "-", [ !Ref ParamVpcStackName, Website2 ] ]
+      CacheNodeType:
+        Ref: ParamNodeType
+      CacheSubnetGroupName:
+        Ref: CacheClusterSubnetGroup
+      Engine:
+        Ref: ParamEngine
+      NotificationTopicArn:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      NumCacheNodes:
+        Ref: ParamNodeCount
+      Tags:
+        - Key: Management
+          Value: Hosted
+      VpcSecurityGroupIds:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupEcc ] ]
+
+Outputs:
+  OutputCacheClusterWebsite1:
+    Value: !Ref CacheClusterWebsite1
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, CacheClusterWebsite1 ] ]
+
+  OutputCacheClusterEndpointWebsite1:
+    Value: !GetAtt [ CacheClusterWebsite1,ConfigurationEndpoint.Address ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, CacheClusterEndpointWebsite1 ] ]
+
+  OutputCacheClusterWebsite2:
+    Value: !Ref CacheClusterWebsite2
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, CacheClusterWebsite2 ] ]
+
+  OutputCacheClusterEndpointWebsite2:
+    Value: !GetAtt [ CacheClusterWebsite2,ConfigurationEndpoint.Address ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, CacheClusterEndpointWebsite2 ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

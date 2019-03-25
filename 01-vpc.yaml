@@ -1,0 +1,442 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: VPC
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+  ParamVpcCidr:
+    Type: String
+
+  ParamSubnetBastion:
+    Type: String
+
+  ParamSubnetPubZoneA:
+    Type: String
+
+  ParamSubnetPubZoneB:
+    Type: String
+
+  ParamSubnetPubZoneC:
+    Type: String
+
+  ParamSubnetPrvZoneA:
+    Type: String
+
+  ParamSubnetPrvZoneB:
+    Type: String
+
+  ParamSubnetPrvZoneC:
+    Type: String
+
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: ParamVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Management
+          Value: Hosted
+        - Key: Customer
+          Value:
+            Ref: ParamCustomerName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  ElasticNatA:
+    Type: AWS::EC2::EIP
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticNatA.AllocationId
+      SubnetId:
+        Ref: SubnetBastion
+    DependsOn: VPCGatewayAttachment
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId:
+        Ref: VPC
+
+  RouteTableNET:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+
+  RouteTableNAT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+
+  RouteNET:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: RouteTableNET
+
+  RouteNAT:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NatGateway
+      RouteTableId:
+        Ref: RouteTableNAT
+
+  RouteTableAssociationBastion:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNET
+      SubnetId:
+        Ref: SubnetBastion
+
+  RouteTableAssociationPrvA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNAT
+      SubnetId:
+        Ref: SubnetPrvZoneA
+
+  RouteTableAssociationPrvB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNAT
+      SubnetId:
+        Ref: SubnetPrvZoneB
+  
+  RouteTableAssociationPrvC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNAT
+      SubnetId:
+        Ref: SubnetPrvZoneC
+
+  RouteTableAssociationPubA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNET
+      SubnetId:
+        Ref: SubnetPubZoneA
+
+  RouteTableAssociationPubB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNET
+      SubnetId:
+        Ref: SubnetPubZoneB
+  
+  RouteTableAssociationPubC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RouteTableNET
+      SubnetId:
+        Ref: SubnetPubZoneC
+
+  SubnetBastion:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:
+        Ref: ParamSubnetBastion
+      MapPublicIpOnLaunch: true
+      VpcId:
+        Ref: VPC
+
+  SubnetPubZoneA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2a
+      CidrBlock:
+        Ref: ParamSubnetPubZoneA
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SubnetPubZoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2b
+      CidrBlock:
+        Ref: ParamSubnetPubZoneB
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SubnetPubZoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2c
+      CidrBlock:
+        Ref: ParamSubnetPubZoneC
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SubnetPrvZoneA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2a
+      CidrBlock:
+        Ref: ParamSubnetPrvZoneA
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SubnetPrvZoneB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2b
+      CidrBlock:
+        Ref: ParamSubnetPrvZoneB
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SubnetPrvZoneC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-southeast-2c
+      CidrBlock:
+        Ref: ParamSubnetPrvZoneC
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: VPC
+
+  SecurityGroupMgmt:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-mgmt
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !Ref ParamVpcCidr
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref ParamVpcCidr
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 202.58.39.226/32
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 202.58.44.0/24
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 202.4.74.91/32
+      VpcId:
+        Ref: VPC
+
+  SecurityGroupWeb:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-web
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      VpcId:
+        Ref: VPC
+
+  SecurityGroupRds:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-rds
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId:
+            Ref: SecurityGroupMgmt
+      VpcId:
+        Ref: VPC
+
+  SecurityGroupEcc:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-ecc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 11211
+          ToPort: 11211
+          SourceSecurityGroupId:
+            Ref: SecurityGroupMgmt
+      VpcId:
+        Ref: VPC
+
+  SecurityGroupNfs:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-nfs
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId:
+            Ref: SecurityGroupMgmt
+      VpcId:
+        Ref: VPC
+  
+  SecurityGroupElk:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: sg-elk
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 9200
+          ToPort: 9200
+          CidrIp: !Ref ParamVpcCidr
+        - IpProtocol: tcp
+          FromPort: 9200
+          ToPort: 9200
+          CidrIp: !Join [ "/", [ !Ref "ElasticNatA", 32 ] ]
+        - IpProtocol: tcp
+          FromPort: 9300
+          ToPort: 9300
+          CidrIp: !Ref ParamVpcCidr
+        - IpProtocol: tcp
+          FromPort: 9300
+          ToPort: 9300
+          CidrIp: !Join [ "/", [ !Ref "ElasticNatA", 32 ] ]
+      VpcId:
+        Ref: VPC
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Ref: "AWS::StackName"
+      Subscription:
+        - Endpoint:
+            Ref: ParamNotificationEmail
+          Protocol: email
+      TopicName: 
+        Ref: "AWS::StackName"
+
+
+Outputs:
+  OutputVPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", VPC ] ]
+
+  OutputSubnetBastion:
+    Value: !Ref SubnetBastion
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetBastion ] ]
+      
+  OutputSubnetPubZoneA:
+    Value: !Ref SubnetPubZoneA
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPubZoneA ] ]
+      
+  OutputSubnetPubZoneB:
+    Value: !Ref SubnetPubZoneB
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPubZoneB ] ]
+      
+  OutputSubnetPubZoneC:
+    Value: !Ref SubnetPubZoneC
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPubZoneC ] ]
+
+  OutputSubnetPrvZoneA:
+    Value: !Ref SubnetPrvZoneA
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPrvZoneA ] ]
+      
+  OutputSubnetPrvZoneB:
+    Value: !Ref SubnetPrvZoneB
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPrvZoneB ] ]
+      
+  OutputSubnetPrvZoneC:
+    Value: !Ref SubnetPrvZoneC
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SubnetPrvZoneC ] ]
+
+  OutputSecurityGroupMgmt:
+    Value: !Ref SecurityGroupMgmt
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupMgmt ] ]
+
+  OutputSecurityGroupNfs:
+    Value: !Ref SecurityGroupNfs
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupNfs ] ]
+      
+  OutputSecurityGroupWeb:
+    Value: !Ref SecurityGroupWeb
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupWeb ] ]
+
+  OutputSecurityGroupRds:
+    Value: !Ref SecurityGroupRds
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupRds ] ]
+
+  OutputSecurityGroupEcc:
+    Value: !Ref SecurityGroupEcc
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupEcc ] ]
+
+  OutputSecurityGroupElk:
+    Value: !Ref SecurityGroupElk
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SecurityGroupElk ] ]
+
+  OutputSnsTopic:
+    Value: !Ref SnsTopic
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", SnsTopic ] ]
+
+  OutputVPCGatewayAttachment:
+    Value: !Ref SnsTopic
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", VPCGatewayAttachment ] ]
+
+  OutputIPAddressElasticNatA:
+    Description: 'The public IP address of the NAT gateway.'
+    Value: !Ref ElasticNatA
+    Export:
+      Name: !Join [ ":", [ !Ref "AWS::StackName", IPAddressElasticNatA ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

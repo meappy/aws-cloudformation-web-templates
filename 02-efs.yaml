@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: EFS
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+
+Resources:
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+
+  MountTargetA:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: FileSystem
+      SubnetId:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneA ] ]
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupNfs ] ]
+
+  MountTargetB:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: FileSystem
+      SubnetId:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneB ] ]
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupNfs ] ]
+
+  MountTargetC:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: FileSystem
+      SubnetId:
+        Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneC ] ]
+      SecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupNfs ] ]
+
+
+Outputs:
+  OutputFileSystem:
+    Value: !Ref FileSystem
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, FileSystem ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

@@ -1,0 +1,222 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: RDS
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  ParamVpcStackName:
+    Type: String
+
+  ParamDatabase1:
+    Type: String
+
+  ParamDatabase2:
+    Type: String
+
+  ParamUsername:
+    Type: String
+    Default: root
+
+  ParamPassword:
+    Type: String
+
+  ParamMultiZone:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+
+  ParamAllocatedStorage:
+    Type: String
+    Default: 10
+
+  ParamInstanceClass:
+    Type: String
+    Default: db.t2.medium
+    AllowedValues:
+      - db.t2.micro
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.large
+
+  ParamEngine:
+    Type: String
+    Default: mysql
+    AllowedValues:
+      - aurora
+      - mariadb
+      - mysql
+      - postgres
+
+
+Resources:
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Join [ "-", [ !Ref ParamVpcStackName, rds-sngrp ] ]
+      SubnetIds:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneA ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneB ] ]
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SubnetPrvZoneC ] ]
+
+  DatabaseDB1:
+    Type : AWS::RDS::DBInstance
+    Properties:
+      PubliclyAccessible: false
+      MultiAZ:
+        Ref: ParamMultiZone
+      AllocatedStorage:
+        Ref: ParamAllocatedStorage
+      StorageType: gp2
+      DBInstanceClass :
+        Ref: ParamInstanceClass
+      DBInstanceIdentifier:
+        Fn::Join: [ "-", [ !Ref ParamVpcStackName, rds-db1 ] ]
+      DBSubnetGroupName:
+        Ref: DatabaseSubnetGroup
+      Engine:
+        Ref: ParamEngine
+      DBName:
+        Ref: ParamDatabase1
+      MasterUsername:
+        Ref: ParamUsername
+      MasterUserPassword:
+        Ref: ParamPassword
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupRds ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+
+  DatabaseDB2:
+    Type : AWS::RDS::DBInstance
+    Properties:
+      PubliclyAccessible: false
+      MultiAZ:
+        Ref: ParamMultiZone
+      AllocatedStorage:
+        Ref: ParamAllocatedStorage
+      StorageType: gp2
+      DBInstanceClass :
+        Ref: ParamInstanceClass
+      DBInstanceIdentifier:
+        Fn::Join: [ "-", [ !Ref ParamVpcStackName, rds-db2 ] ]
+      DBSubnetGroupName:
+        Ref: DatabaseSubnetGroup
+      Engine:
+        Ref: ParamEngine
+      DBName:
+        Ref: ParamDatabase2
+      MasterUsername:
+        Ref: ParamUsername
+      MasterUserPassword:
+        Ref: ParamPassword
+      VPCSecurityGroups:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SecurityGroupRds ] ]
+      Tags:
+        - Key: Management
+          Value: Hosted
+
+
+  AlarmRDSUtilizationDB1:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DatabaseDB1
+      EvaluationPeriods: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Average
+      Threshold: 50
+  AlarmRDSUtilizationDB2:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DatabaseDB2
+      EvaluationPeriods: 3
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Average
+      Threshold: 50
+  AlarmRDSDatabaseConnectionsDB1:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DatabaseDB1
+      EvaluationPeriods: 3
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Minimum
+      Threshold: 50
+
+  AlarmRDSDatabaseConnectionsDB2:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - Fn::ImportValue: !Join [ ":", [ !Ref ParamVpcStackName, SnsTopic ] ]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DatabaseDB2
+      EvaluationPeriods: 3
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Period: 300
+      Statistic: Minimum
+      Threshold: 50
+
+
+Outputs:
+  OutputSubnetGroup:
+    Value: !Ref DatabaseSubnetGroup
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, DatabaseSubnetGroup ] ]
+
+  OutputRdsInstanceDB1:
+    Value: !Ref DatabaseDB1
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, DatabaseDB1 ] ]
+
+  OutputRdsEndpointDB1:
+    Value: !GetAtt [ DatabaseDB1,Endpoint.Address ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, RDSEndpointDB1 ] ]
+
+  OutputRdsInstanceDB2:
+    Value: !Ref DatabaseDB2
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, DatabaseDB2 ] ]
+
+  OutputRdsEndpointDB2:
+    Value: !GetAtt [ DatabaseDB2,Endpoint.Address ]
+    Export:
+      Name: !Join [ ":", [ !Ref ParamVpcStackName, RDSEndpointDB2 ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

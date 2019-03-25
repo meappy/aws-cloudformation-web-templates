@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Description: S3
+
+
+Parameters:
+  ParamCustomerName:
+    Type: String
+
+  ParamNotificationEmail:
+    Type: String
+
+  VpcStackName:
+    Type: String
+
+  BucketName1:
+    Type: String
+
+  BucketName2:
+    Type: String
+
+
+Resources:
+  Bucket1:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName:
+        Ref: BucketName1
+      AccessControl: PublicRead
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders: ['*']
+          AllowedMethods: [GET,HEAD]
+          AllowedOrigins: ['*']
+          MaxAge: '3600'
+      Tags:
+        - Key: Management
+          Value: Hosted
+
+  Bucket2:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName:
+        Ref: BucketName2
+      AccessControl: PublicRead
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders: ['*']
+          AllowedMethods: [GET,HEAD]
+          AllowedOrigins: ['*']
+          MaxAge: '3600'
+      Tags:
+        - Key: Management
+          Value: Hosted
+
+  BucketPolicy1:
+    Type: "AWS::S3::BucketPolicy"
+    Properties: 
+      Bucket:
+        Ref: Bucket1
+      PolicyDocument:
+        Statement: 
+          - Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              Fn::Join: [ "", [ "arn:aws:s3:::", !Ref Bucket1, "/*" ] ]
+            Principal: "*"
+
+  BucketPolicy2:
+    Type: "AWS::S3::BucketPolicy"
+    Properties: 
+      Bucket:
+        Ref: Bucket2
+      PolicyDocument:
+        Statement: 
+          - Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              Fn::Join: [ "", [ "arn:aws:s3:::", !Ref Bucket2, "/*" ] ]
+            Principal: "*"
+
+Outputs:
+  OutputBucket1:
+    Value: !Join [ '', [ 'https://', !GetAtt [ Bucket1, DomainName ] ] ]
+  OutputBucket2:
+    Value: !Join [ '', [ 'https://', !GetAtt [ Bucket2, DomainName ] ] ]
+
+# vim:syntax=yaml tabstop=2 expandtab nowrap:

@@ -1,0 +1,9 @@
+[
+  { "ParameterKey": "ParamCustomerName",      "ParameterValue": "My Website" },
+  { "ParameterKey": "ParamNotificationEmail", "ParameterValue": "you@email.com" },
+  { "ParameterKey": "ParamVpcStackName",      "ParameterValue": "vpc-v1" },
+  { "ParameterKey": "ParamAccessKey",         "ParameterValue": "private-key" },
+  { "ParameterKey": "ParamAutoScaleGroupTag", "ParameterValue": "elk-as-v1" },
+  { "ParameterKey": "ParamImageId",           "ParameterValue": "ami-30041c53" },
+  { "ParameterKey": "ParamInstanceType",      "ParameterValue": "t2.medium" }
+]
